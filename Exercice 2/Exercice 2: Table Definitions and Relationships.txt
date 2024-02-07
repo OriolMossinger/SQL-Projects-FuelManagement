@@ -1,0 +1,144 @@
+--- a)
+
+-- Selecting the columns cars_registration, cars_model, cars_employee,
+-- and cars_date_registration from the tb_cars table.
+-- Filtering by the 'delivery' feature in the cars_function column.
+-- And ordering it in descending order by the registration date,
+-- which is the cars_date_registration column.
+
+select cars_registration, cars_model, cars_employee, cars_date_registration
+from erp.tb_cars
+where cars_function = 'reparto'
+order by cars_date_registration desc;
+
+--- b)
+
+-- The statement asks us to show the employee's name,
+-- the vehicle model, the gas station name, the
+-- refueling date which should be in August, and that
+-- only 41 liters of fuel were filled.
+
+-- Once the records with the requested conditions
+-- from the refuelings (rf_liters and rf_date) are obtained, we get the identifier
+-- of the gas station (gas_id) and the vehicle's identifier
+-- (car_registration). These identifiers link to the respective
+-- tb_gas_station and tb_cars tables.
+
+select CA.cars_employee, CA.cars_model, GS.gas_name, RF.rf_date
+from erp.tb_refueling as RF,
+     erp.tb_cars as CA,
+     erp.tb_gas_station as GS
+where RF.rf_liters = 41 
+  AND RF.rf_date BETWEEN '2022-08-01' AND '2022-08-31'
+  AND CA.cars_registration = RF.cars_registration 
+  AND GS.gas_id = RF.gas_id
+order by CA.cars_employee ASC, RF.rf_date DESC;
+
+--- c) 
+
+-- The problem asks me to provide the total liters,
+-- so we must create a sum grouped by car_registration
+-- and cars_employee
+
+select CA.cars_registration, CA.cars_employee, sum(RF.rf_liters) as Total_litres
+from erp.tb_refueling as RF,
+     erp.tb_cars as CA
+where CA.cars_function = 'comercial'
+  AND CA.cars_registration = RF.cars_registration
+GROUP BY CA.cars_registration, CA.cars_employee  
+order by Total_litres ASC;
+
+--- d)
+
+-- This query calculates the average invoice amount for each VITO model vehicle
+-- used for 'reparto' (distribution) in September 2022. It then compares this average
+-- against the overall average invoice amount for 'reparto' vehicles in September 2022,
+-- and returns the cars_registration along with the media_VITO values where the VITO
+-- model's average invoice amount is less than the overall average for 'reparto' vehicles.
+
+select cars_registration, media_VITO
+from(select CA.cars_registration, avg(LI.linv_amount) as media_VITO
+from erp.tb_cars as CA,
+     erp.tb_refueling as RF,
+	 erp.tb_lines_invoice as LI
+where CA.cars_function = 'reparto'
+  and CA.cars_model like '%VITO%'
+  and RF.rf_date between '2022-09-01' AND '2022-09-30'
+  and CA.cars_registration = LI.cars_registration
+group by CA.cars_registration) as Foo
+where media_VITO < (
+select avg(LI.linv_amount) as media_reparto
+from erp.tb_cars as CA,
+     erp.tb_refueling as RF,
+	 erp.tb_lines_invoice as LI
+where CA.cars_function = 'reparto'
+  and RF.rf_date between '2022-09-01' AND '2022-09-30'
+  and CA.cars_registration = LI.cars_registration);
+
+---
+
+-- This query performs a similar task as the previous one, calculating the average
+-- invoice amount for VITO model vehicles used for 'reparto' in September 2022. It then
+-- compares this average with the overall average invoice amount for 'reparto' vehicles
+-- in September 2022 using an inner join, and returns the cars_registration along with
+-- the media_VITO values where the VITO model's average invoice amount is less than the
+-- overall average for 'reparto' vehicles.
+
+select cars_registration, media_VITO
+from(select CA.cars_registration, avg(LI.linv_amount) as media_VITO
+	 from erp.tb_cars as CA,
+     	  erp.tb_refueling as RF,
+	 	  erp.tb_lines_invoice as LI
+     where CA.cars_function = 'reparto'
+  	   and CA.cars_model like '%VITO%'
+  	   and RF.rf_date between '2022-09-01' AND '2022-09-30'
+  	   and CA.cars_registration = LI.cars_registration
+	   group by CA.cars_registration) as vito
+inner join (select avg(LI.linv_amount) as media_reparto
+			from erp.tb_cars as CA,
+     			 erp.tb_refueling as RF,
+	 			 erp.tb_lines_invoice as LI
+			where CA.cars_function = 'reparto'
+ 			  and RF.rf_date between '2022-09-01' AND '2022-09-30'
+  			  and CA.cars_registration = LI.cars_registration) as todos
+on vito.media_VITO < todos.media_reparto;
+
+---
+
+-- This query also calculates the average invoice amount for VITO model vehicles used for
+-- 'reparto' in September 2022 and compares it with the overall average invoice amount for
+-- 'reparto' vehicles in September 2022. It then returns the cars_registration along with
+-- the media_VITO values where the VITO model's average invoice amount is less than the
+-- overall average for 'reparto' vehicles.
+
+select cars_registration, media_VITO
+from(select CA.cars_registration, avg(LI.linv_amount) as media_VITO
+     from erp.tb_cars as CA,
+          erp.tb_refueling as RF,
+	      erp.tb_lines_invoice as LI
+     where CA.cars_function = 'reparto'
+       and CA.cars_model like '%VITO%'
+       and RF.rf_date between '2022-09-01' AND '2022-09-30'
+       and CA.cars_registration = LI.cars_registration
+     group by CA.cars_registration) as Foo
+where media_VITO < (select avg(LI.linv_amount) as media_reparto
+                    from erp.tb_cars as CA,
+                         erp.tb_refueling as RF,
+                    	 erp.tb_lines_invoice as LI
+                    where CA.cars_function = 'reparto'
+                      and RF.rf_date between '2022-09-01' AND '2022-09-30'
+                      and CA.cars_registration = LI.cars_registration
+				   );
+
+--- e)
+
+-- Selecting cars_registration, gas_id, and rf_date from tb_refueling as RF
+-- where rf_km is null and gas_id is one of ('GS04', 'GS02', 'GS05'),
+-- ordering by cars_registration in descending order and rf_date in ascending order.
+
+select RF.cars_registration, RF.gas_id, RF.rf_date
+from erp.tb_refueling as RF
+where RF.rf_km is null
+  and RF.gas_id in ('GS04', 'GS02', 'GS05')
+order by RF.cars_registration DESC,
+         RF.rf_date ASC;

@@ -1,0 +1,149 @@
+-- The first step is to create the pec2 database
+
+CREATE DATABASE pec2;
+
+-- Once the pec2 database is created, which I had to create from the Query Tool of the postgres db, I position myself in the erp db and from there I use its Query Tool.
+
+-- Now, I proceed to create the erp schema in the pec2 db:
+
+CREATE SCHEMA erp;
+
+-- I proceed to create the tables in the erp schema within the pec2 db.
+
+-- I create the tb_cars table
+
+create table erp.tb_cars
+(cars_registration character(7) not null,
+ cars_model character varying(50) not null,
+ cars_function character(20) not null,
+ cars_deposit integer not null,
+ cars_fuel character(10) not null default 'diesel',
+ cars_date_input date not null default current_date,
+ cars_employee character varying(50),
+ cars_date_registration date not null,
+ constraint pk_cars primary key (cars_registration));
+
+-- I assign the postgres owner to the table
+
+alter table if exists erp.tb_cars owner to postgres;
+
+-- I create the tb_gas_station table
+
+create table erp.tb_gas_station
+(gas_id character(5) not null,
+ gas_name character varying(50) not null,
+ constraint ku_gas_name unique (gas_name),
+ constraint pk_gas_station primary key (gas_id));
+
+-- I assign the postgres owner to the table
+
+alter table if exists erp.tb_gas_station owner to postgres;
+
+-- I create the tb_pump table
+
+-- For the foreign keys of this table, I assign MATCH SIMPLE because if the column is null,
+-- it does not force to comply with the reference with the related table. Although in this case it does not apply,
+-- because the columns are not null. But this parameter has to be specified.
+
+-- Both in DELETE and UPDATE I define them as NO ACTION because if the record is deactivated or modified
+-- and it does not comply with the established relationship rules with the other tables, I receive a sql error and it will not perform any
+-- part of the requested action. The data will remain in the initial state.
+
+create table erp.tb_pump
+(pm_id integer not null,
+ pm_parent_id integer,
+ gas_id character(5) not null,
+ pm_descr character varying(20) not null,
+ constraint pk_pump primary key (pm_id),
+ constraint ku_pump01 unique (gas_id, pm_id),
+ constraint fk_pump01 foreign key (pm_parent_id) references erp.tb_pump(pm_id)
+ match simple on update no action on delete no action,
+ constraint fk_pump02 foreign key (gas_id) references erp.tb_gas_station(gas_id)
+ match simple on update no action on delete no action);
+
+-- I assign the postgres owner to the table
+
+alter table if exists erp.tb_pump owner to postgres;
+
+-- I create the tb_fuel_price table
+
+create table erp.tb_fuel_price
+(fp_date date not null,
+ fp_fuel character(10) not null,
+ fp_import numeric(15,3) not null,
+ constraint pk_fuel_price primary key (fp_date, fp_fuel));
+
+-- I assign the postgres owner to the table
+
+alter table if exists erp.tb_fuel_price owner to postgres;
+
+-- I create the tb_refueling table
+
+-- For the foreign keys of this table, I assign MATCH SIMPLE because if the column is null,
+-- it does not force to comply with the reference with the related table. Although in this case it does not apply,
+-- because the columns are not null. But this parameter has to be specified.
+
+-- Both in DELETE and UPDATE I define them as NO ACTION because if the record is deactivated or modified
+-- and it does not comply with the established relationship rules with the other tables, I receive a sql error and it will not perform any
+-- part of the requested action. The data will remain in the initial state.
+
+create table erp.tb_refueling
+(gas_id character(5) not null,
+ cars_registration character(7) not null,
+ pm_id integer not null,
+ rf_liters integer not null,
+ rf_date date not null default now(),
+ rf_km integer,
+ constraint fk_refueling01 foreign key (gas_id) references erp.tb_gas_station(gas_id)
+ match simple on update no action on delete no action,
+ constraint fk_refueling02 foreign key (cars_registration) references erp.tb_cars(cars_registration)
+ match simple on update no action on delete no action,
+ constraint fk_refueling03 foreign key (pm_id) references erp.tb_pump(pm_id)
+ match simple on update no action on delete no action);
+
+-- I assign the postgres owner to the table
+
+alter table if exists erp.tb_refueling owner to postgres;
+
+-- I create the tb_invoice table
+
+-- I assign the postgres owner to the table
+
+alter table if exists erp.tb_invoice owner to postgres;
+
+-- I create the tb_lines_invoice table
+
+-- For the foreign keys of this table, I assign MATCH SIMPLE because if the column is null,
+-- it does not force compliance with the reference to the related table. Although in this case it does not apply,
+-- because the columns are not null. But this parameter must be specified.
+
+-- For fk_lines_invoice02 and fk_lines_invoice03, both in DELETE and UPDATE I define them as NO ACTION
+-- because if deactivating or modifying the record does not comply with the established rules of relation with the other tables,
+-- I receive an SQL error and no part of the requested action will be performed. The data will remain in its initial state.
+-- For fk_lines_invoice01, I will apply CASCADE on both DELETE and UPDATE because if the invoice identifier is modified or deleted,
+-- it will carry the same actions over the related invoice lines.
+
+create table erp.tb_lines_invoice
+(inv_id integer not null,
+ linv_id integer not null,
+ cars_registration character(7) not null,
+ gas_id character(5) not null,
+ linv_liters integer not null,
+ linv_amount numeric(14,2) not null,
+ 
+ constraint pk_lines_invoice primary key (inv_id, linv_id),
+ constraint fk_lines_invoice01 foreign key (inv_id) references erp.tb_invoice(inv_id)
+ match simple on update cascade on delete cascade,
+ constraint fk_lines_invoice02 foreign key (cars_registration) references erp.tb_cars(cars_registration)
+ match simple on update no action on delete no action,
+ constraint fk_lines_invoice03 foreign key (gas_id) references erp.tb_gas_station(gas_id)
+ match simple on update no action on delete no action);
+
+-- I assign the postgres owner to the table
+
+alter table if exists erp.tb_lines_invoice owner to postgres;
+
+-- I use the following SQL statement to check that all the input has been correctly loaded:
+
+SELECT inv_id, linv_id, cars_registration, gas_id, linv_liters, linv_amount
+ FROM erp.tb_lines_invoice;

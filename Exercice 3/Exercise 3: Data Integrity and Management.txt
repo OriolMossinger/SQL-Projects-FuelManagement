@@ -1,0 +1,96 @@
+-- a)
+
+-- I insert into the erp.tb_cars table the values for the following columns:
+-- cars_registration, cars_model, cars_function, cars_deposit, cars_fuel, cars_date_input, cars_employee, and cars_date_registration.
+-- The first car's data is provided explicitly.
+
+INSERT INTO erp.tb_cars 
+   (cars_registration, cars_model, cars_function,cars_deposit,cars_fuel,cars_date_input,cars_employee,cars_date_registration) 
+VALUES 
+   ('2233JMN','AUDI Q5','gerencia',40,'gasolina',current_date,'Carmen Sevilla Calvo',to_date('16-03-2016','DD-MM-YYYY'));
+
+-- For the second car, the fuel type is by default and we could consider two solutions:
+-- 1) Setting a default input in the cars_fuel column.
+-- 2) Omitting the cars_fuel column along with its value.
+
+INSERT INTO erp.tb_cars 
+(cars_registration, cars_model, cars_function,cars_deposit,cars_fuel,cars_date_input,cars_employee,cars_date_registration) 
+VALUES 
+('7542LSN','AUDI A1','gerencia',30,default,current_date,'Carlos Díaz Sevilla',to_date('01-08-2021','DD-MM-YYYY'));
+
+INSERT INTO erp.tb_cars 
+(cars_registration, cars_model, cars_function,cars_deposit,cars_fuel,cars_date_input,cars_employee,cars_date_registration) 
+VALUES 
+('1974LBN','AUDI A3','gerencia',35,'gasoil',current_date,'Javier Díaz Sevilla',to_date('30-09-2019','DD-MM-YYYY'));
+
+-- b)
+
+-- I have selected all vehicles that have refueled (tb_cars, tb_refueling).
+-- From the obtained result, I have joined it with the fuel prices per day (tb_fuel_price)
+-- I have grouped by date to remove duplicates (FP.fp_date)
+-- At this point, I have the days with refueling.
+-- Then, I have deleted the days without refueling (erp.tb_fuel_price).
+-- 26 records have been deleted from tb_fuel_price.
+
+DELETE FROM erp.tb_fuel_price AS FP
+WHERE FP.fp_date NOT IN (
+	SELECT FP.fp_date
+	FROM erp.tb_cars AS CA
+	INNER JOIN erp.tb_refueling AS RF 
+		ON RF.cars_registration = CA.cars_registration
+	INNER JOIN erp.tb_fuel_price AS FP
+		ON FP.fp_date = RF.rf_date
+		AND FP.fp_fuel = CA.cars_fuel
+	GROUP BY FP.fp_date);
+
+-- c)
+
+-- I add a new column to the erp.tb_fuel_price table:
+
+-- Before making the modification, I select to see the results I will get:
+
+-- I update to update the fp_import_without_vat column:
+
+-- I check the result:
+
+-- I alter to set not null.
+
+ALTER TABLE erp.tb_fuel_price ADD COLUMN fp_import_without_vat numeric(15,3);
+
+-- d)
+
+-- I apply the condition to the erp.tb_cars table so that the cars_employee column is not null except when the cars_function column is 'gerencia' (management).
+
+ALTER TABLE erp.tb_cars ADD CONSTRAINT chk_cars01 CHECK (tb_cars.cars_employee IS NOT NULL OR tb_cars.cars_function = 'gerencia');
+
+-- e)
+
+-- I create the user 'registerer' with the password '1234':
+
+CREATE USER registerer WITH ENCRYPTED PASSWORD '1234';
+
+-- I grant connection permission to the 'registerer' user to the database 'pec2':
+
+GRANT CONNECT ON DATABASE pec2 TO registerer;
+
+-- I assign the 'erp' schema to the 'registerer' user:
+
+GRANT USAGE ON SCHEMA erp TO registerer;
+
+-- For security, I revoke all privileges from the 'registerer' user:
+
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA erp FROM registerer;
+
+-- I grant select, insert, and update permissions to the 'registerer' user on the 'tb_refueling' table:
+
+GRANT SELECT, INSERT, UPDATE ON erp.tb_refueling TO registerer;
+
+-- I grant select permission to the 'registerer' user on the 'tb_cars' table:
+
+GRANT SELECT ON erp.tb_cars TO registerer;
+
+-- I ensure that the 'registerer' user cannot grant permissions to other users on the 'tb_refueling' and 'tb_cars' tables:
+
+REVOKE GRANT OPTION FOR SELECT, INSERT, UPDATE ON erp.tb_refueling FROM registerer;
+
+REVOKE GRANT OPTION FOR SELECT ON erp.tb_cars FROM registerer;
