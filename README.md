@@ -29,7 +29,4 @@ Feedback and contributions to this project are highly welcome. Please feel free 
 ## Contact
 
 For more information or to discuss further, please contact me via [LinkedIn](https://www.linkedin.com/in/your-profile) or [Email](mailto:your-email).
-# SQL-Projects-FuelManagement
-# SQL-Projects-FuelManagement
-# SQL-Projects-FuelManagement
-# SQL-Projects-FuelManagement
+
